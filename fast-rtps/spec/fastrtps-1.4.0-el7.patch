@@ -1,0 +1,16 @@
+diff -up ./CMakeLists.txt.el7 ./CMakeLists.txt
+--- ./CMakeLists.txt.el7	2017-06-10 10:33:42.106697112 -0400
++++ ./CMakeLists.txt	2017-06-10 10:34:05.455603890 -0400
+@@ -174,11 +174,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PAT
+ ###############################################################################
+ # Default shared libraries
+ ###############################################################################
+-option(BUILD_SHARED_LIBS
+-    "Global flag to cause add_library() to create shared libraries if on. \
+-    If set to true, this will cause all libraries to be built shared \
+-    unless the library was explicitly added as a static library."
+-    ON)
++option(BUILD_SHARED_LIBS "Global flag to cause add_library() to create shared libraries if on. If set to true, this will cause all libraries to be built shared unless the library was explicitly added as a static library." ON)
+ 
+ ###############################################################################
+ # Load external projects.

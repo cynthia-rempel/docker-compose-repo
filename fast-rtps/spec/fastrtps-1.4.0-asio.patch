@@ -1,0 +1,13 @@
+diff -up ./include/fastrtps/rtps/flowcontrol/FlowController.h.asio ./include/fastrtps/rtps/flowcontrol/FlowController.h
+--- ./include/fastrtps/rtps/flowcontrol/FlowController.h.asio	2017-06-09 22:37:37.104941711 -0400
++++ ./include/fastrtps/rtps/flowcontrol/FlowController.h	2017-06-09 22:37:49.293395670 -0400
+@@ -25,7 +25,7 @@
+ 
+ namespace asio{
+     class io_context;
+-    typedef io_context io_service;
++    class io_service;
+ }
+ namespace eprosima{
+ namespace fastrtps{
+

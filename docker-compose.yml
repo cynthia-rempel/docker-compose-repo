@@ -1,0 +1,97 @@
+# https://live.osgeo.org/en/overview/overview.html
+# https://gisgeography.com/free-gis-software/
+
+version: "2.2"
+services:
+  # before running repo.service run make-keys.sh
+  repo.service:
+    build:
+      ./repo
+    command: supervisord -n -c /etc/supervisord.conf
+    container_name: repo.rpm
+    image:
+      repo:centos
+    volumes:
+      - ./repo/repos:/var/www/html/repos/ 
+  base.rpm:
+    build:
+      ./base
+    image:
+      base-terragear:build
+  cgal.rpm:
+    # CGAL-4.11.1-1.el7.x86_64.rpm
+    # CGAL-devel-4.11.1-1.el7.x86_64.rpm
+    # CGAL-demos-source-4.11.1-1.el7.x86_64.rpm
+    # CGAL-debuginfo-4.11.1-1.el7.x86_64.rpm
+    # sudo docker cp cgal.build:/root/rpmbuild/RPMS/x86_64/ rpms/cgal/rpms/
+    build:
+      ./cgal
+    command: init
+    container_name: cgal.build
+    image:
+      cgal:build
+  # flightgear-data.rpm:
+  #  build:
+  #    ./flightgear-data
+  #  container_name: flightgear.data
+  #  image:
+  #    flightgear-data:build
+  openscenegraph.rpm:
+    # OpenSceneGraph-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-Collada-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-OpenEXR-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-debuginfo-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-devel-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-examples-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-examples-SDL-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-examples-fltk-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-examples-gtk-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-examples-qt-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-gdal-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-gstreamer-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-libs-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-qt-3.4.1-5.el7.x86_64.rpm
+    # OpenSceneGraph-qt-devel-3.4.1-5.el7.x86_64.rpm
+    # OpenThreads-3.4.1-5.el7.x86_64.rpm
+    # OpenThreads-devel-3.4.1-5.el7.x86_64.rpm
+    build:
+      ./openscenegraph
+    command: init
+    container_name: openscenegraph.build
+    image:
+      openscenegraph:build
+  gdal.rpm:
+    # gdal-2.2.4-2.el7.x86_64.rpm
+    # gdal-devel-2.2.4-2.el7.x86_64.rpm
+    # gdal-libs-2.2.4-2.el7.x86_64.rpm
+    # gdal-java-2.2.4-2.el7.x86_64.rpm
+    # gdal-javadoc-2.2.4-2.el7.noarch.rpm
+    # gdal-perl-2.2.4-2.el7.x86_64.rpm
+    # python2-gdal-2.2.4-2.el7.x86_64.rpm
+    # gdal-python3-gdal-2.2.4-2.el7.x86_64.rpm
+    # gdal-doc-2.2.4-2.el7.noarch.rpm
+    # gdal-debuginfo-2.2.4-2.el7.x86_64.rpm
+    build:
+      ./gdal
+    command: init
+    container_name: gdal.build
+    image:
+      gdal:build
+  simgear.rpm:
+    # SimGear-2017.3.1-3.el7.x86_64.rpm
+    # SimGear-debuginfo-2017.3.1-3.el7.x86_64.rpm
+    # SimGear-devel-2017.3.1-3.el7.x86_64.rpm
+    build:
+      ./simgear
+    command: init
+    container_name: simgear.build
+    image:
+      simgear:build
+  terragear.rpm:
+    build:
+      ./terragear
+    command: init
+    container_name: terragear.build
+    image:
+      terragear:build
+
