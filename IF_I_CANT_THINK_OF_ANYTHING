@@ -1,5 +1,0 @@
-# Generates repository of packages for building rpms, so I can install the rpms
-# into the docker containers without the build dependencies
-# Additional RPMS:
-# flightgear's download-and-compile.sh
-# PX4... https://docs.px4.io/en/flight_controller/snapdragon_flight_software_installation.html

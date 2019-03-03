@@ -36,6 +36,16 @@ services:
   #  container_name: flightgear.data
   #  image:
   #    flightgear-data:build
+  fast-cdr.rpm:
+    # Fast-CDR-1.0.8-2.el7.x86_64.rpm
+    # Fast-CDR-devel-1.0.8-2.el7.x86_64.rpm
+    # Fast-CDR-debuginfo-1.0.8-2.el7.x86_64.rpm
+    build:
+      ./fast-cdr
+    command: /home/fast-cdr/put-in-repo.sh
+    container_name: fast-cdr.build
+    image:
+      fast-cdr:build
   openscenegraph.rpm:
     # OpenSceneGraph-3.4.1-5.el7.x86_64.rpm
     # OpenSceneGraph-Collada-3.4.1-5.el7.x86_64.rpm
