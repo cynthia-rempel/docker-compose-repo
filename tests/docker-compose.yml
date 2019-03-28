@@ -1,0 +1,11 @@
+# https://live.osgeo.org/en/overview/overview.html
+# https://gisgeography.com/free-gis-software/
+
+version: "2.2"
+services:
+  nexus.test:
+    build:
+      ./nexus
+    command: init
+    container_name: nexus.test
+    image: nexus:test
