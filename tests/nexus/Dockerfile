@@ -1,4 +1,3 @@
-# Build nexus.zip from source, because it's good to have control
 # Due to log-running nature of build, heavilty leverages image-caching
 # End result is a zip file, which would then be installed on a fresh
 # production container
@@ -6,6 +5,8 @@
 # TODO: summarize in README
 #       https://www.usenix.org/conference/ures14west/summit-program/presentation/mckern
 # TODO: use docker diff on each step to determine what changes each command in nexus guide does
+# TODO: https://dzone.com/articles/how-publish-maven-site-docs
+# TODO: https://dzone.com/articles/basic-site-documentation-maven
 FROM registry.hub.docker.com/library/centos:centos7
 
 ENV container=docker
@@ -17,33 +18,22 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \
     && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7 \
     && yum -y install centos-release-scl \
     && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo \
-    && yum -y install createrepo \
-                      curl \
-                      git \
-                      java-1.8.0-openjdk \
-                      java-1.8.0-openjdk-devel \
-                      rh-maven35 \
-                      rh-maven35-ant \
-                      rh-maven35-ivy \
-                      rh-maven35-jansi \
-                      rh-maven35-jdependency \
-                      rh-maven35-jline \
-                      rh-maven35-maven-model \
-                      rh-maven35-maven-plugin-plugin \
-                      rh-maven35-maven-lib \
-                      rh-maven35-maven-shade-plugin \
-                      rh-maven35-maven-settings \
-                      rh-maven35-plexus-containers-container-default \
-                      rh-maven35-xmvn-connector-aether \
-                      tar \
-                      wget \
-                      which \
+    && yum -y install \
+              bzip2 \
+              createrepo \
+              curl \
+              git \
+              java-1.8.0-openjdk \
+              java-1.8.0-openjdk-devel \
+              rh-maven35 \
+              tar \
+              wget \
+              which \
     && yum clean all \
     && rm -rf /usr/share/java \
     && ln -s /opt/rh/rh-maven35/root/usr/share/java /usr/share
 
-RUN yum -y install bzip2 \
-    && wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
+RUN wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
     && tar -xf phantomjs-2.1.1-linux-x86_64.tar.bz2 \
     && mv phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/ \
     && rm -rf phantomjs-2.1.1-linux-x86_64 \
@@ -59,65 +49,50 @@ WORKDIR /nexus-public
 COPY 0001-fix-elastic-search-dependency.patch /
 
 # Pre-stage pom.xml's to better enable parallel building
-RUN git apply /0001-fix-elastic-search-dependency.patch \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-components/3.16.0-SNAPSHOT/ \
-    && cp components/pom.xml /root/repository/org/sonatype/nexus/nexus-components/3.16.0-SNAPSHOT/nexus-components-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-parent/3.16.0-SNAPSHOT \
-    && cp pom.xml /root/repository/org/sonatype/nexus/nexus-parent/3.16.0-SNAPSHOT/nexus-parent-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-thirdparty-bundles/3.16.0-SNAPSHOT \
-    && cp thirdparty-bundles/pom.xml /root/repository/org/sonatype/nexus/nexus-thirdparty-bundles/3.16.0-SNAPSHOT/nexus-thirdparty-bundles-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-assemblies/3.16.0-SNAPSHOT \
-    && cp assemblies/pom.xml /root/repository/org/sonatype/nexus/nexus-assemblies/3.16.0-SNAPSHOT/nexus-assemblies-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-pax-logging/3.16.0-SNAPSHOT \
-    && cp components/nexus-pax-logging/pom.xml /root/repository/org/sonatype/nexus/nexus-pax-logging/3.16.0-SNAPSHOT/nexus-pax-logging-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/nexus-task-logging/3.16.0-SNAPSHOT/ \
-    && cp components/nexus-task-logging/pom.xml /root/repository/org/sonatype/nexus/nexus-task-logging/3.16.0-SNAPSHOT/nexus-task-logging-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport-all/3.16.0-SNAPSHOT/ \
-    && cp buildsupport/all/pom.xml /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport-all/3.16.0-SNAPSHOT/nexus-buildsupport-all-3.16.0-SNAPSHOT.pom \
-    && mkdir -p /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport/3.16.0-SNAPSHOT/ \
-    && cp buildsupport/pom.xml /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport/3.16.0-SNAPSHOT/nexus-buildsupport-3.16.0-SNAPSHOT.pom
-
-# build incrementally to reduce errors related to parallelism
-RUN cd buildsupport \
-    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.skip=true install
-
-# need the nexus-repository tests jar to build the nexus-repository-maven plugin
-RUN cd components \
-    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.skip=true install \
-    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -pl nexus-repository install -am
-
-# Build the plugins
-RUN cd plugins \
-    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.skip=true install
-
-# Finally, complete the base build!
-RUN /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.skip=true install
+RUN git apply /0001-fix-elastic-search-dependency.patch
 
 # Make technical documentation
 COPY pom.xml /nexus-public/
-RUN mkdir -p /root/repository/org/sonatype/nexus/plugins/nexus-blobstore-group/3.16.0-SNAPSHOT/
-COPY nexus-blobstore-group-3.16.0-SNAPSHOT.pom /root/repository/org/sonatype/nexus/plugins/nexus-blobstore-group/3.16.0-SNAPSHOT/
-RUN cp pom.xml /root/repository/org/sonatype/nexus/nexus-parent/3.16.0-SNAPSHOT/nexus-parent-3.16.0-SNAPSHOT.pom \
-    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.apache.maven.plugins:maven-site-plugin:3.7.1:site
-RUN /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.apache.maven.plugins:maven-site-plugin:3.7.1:stage
+RUN mkdir -p /root/repository/org/sonatype/nexus/nexus-assemblies/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport-all/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-components/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-parent/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-pax-logging/3.16.0-SNAPSHOT \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-plugins/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-rapture/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-task-logging/3.16.0-SNAPSHOT/ \
+    && mkdir -p /root/repository/org/sonatype/nexus/nexus-thirdparty-bundles/3.16.0-SNAPSHOT/ \
+    && cp assemblies/pom.xml /root/repository/org/sonatype/nexus/nexus-assemblies/3.16.0-SNAPSHOT/nexus-assemblies-3.16.0-SNAPSHOT.pom \
+    && cp buildsupport/pom.xml /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport/3.16.0-SNAPSHOT/nexus-buildsupport-3.16.0-SNAPSHOT.pom \
+    && cp buildsupport/all/pom.xml /root/repository/org/sonatype/nexus/buildsupport/nexus-buildsupport-all/3.16.0-SNAPSHOT/nexus-buildsupport-all-3.16.0-SNAPSHOT.pom \
+    && cp components/pom.xml /root/repository/org/sonatype/nexus/nexus-components/3.16.0-SNAPSHOT/nexus-components-3.16.0-SNAPSHOT.pom \
+    && cp pom.xml /root/repository/org/sonatype/nexus/nexus-parent/3.16.0-SNAPSHOT/nexus-parent-3.16.0-SNAPSHOT.pom \
+    && cp components/nexus-pax-logging/pom.xml /root/repository/org/sonatype/nexus/nexus-pax-logging/3.16.0-SNAPSHOT/nexus-pax-logging-3.16.0-SNAPSHOT.pom \
+    && cp plugins/pom.xml /root/repository/org/sonatype/nexus/nexus-plugins/3.16.0-SNAPSHOT/nexus-plugins-3.16.0-SNAPSHOT.pom \
+    && cp components/nexus-rapture/pom.xml /root/repository/org/sonatype/nexus/nexus-rapture/3.16.0-SNAPSHOT/nexus-rapture-3.16.0-SNAPSHOT.pom \
+    && cp components/nexus-task-logging/pom.xml /root/repository/org/sonatype/nexus/nexus-task-logging/3.16.0-SNAPSHOT/nexus-task-logging-3.16.0-SNAPSHOT.pom \
+    && cp thirdparty-bundles/pom.xml /root/repository/org/sonatype/nexus/nexus-thirdparty-bundles/3.16.0-SNAPSHOT/nexus-thirdparty-bundles-3.16.0-SNAPSHOT.pom
 
-# RUN /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report
+RUN cd buildsupport \
+    && /opt/rh/rh-maven35/root/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.failure.ignore=true install
+# skip jasmine specs because they intermittently fail on nexus-rapture
+RUN cd components \
+    && /opt/rh/rh-maven35/root/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -DskipJasmineTests=true install
+RUN cd plugins \
+    && /opt/rh/rh-maven35/root/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.failure.ignore=true install
+RUN cd assemblies \
+    && /opt/rh/rh-maven35/root/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.failure.ignore=true install
+RUN /opt/rh/rh-maven35/root/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository -Dmaven.test.failure.ignore=true install
 
-# RUN cd components \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C clean dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install -Dmaven.test.skip=true
-# RUN cd components/nexus-repository \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C clean dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install
-# RUN cd components \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install
-# RUN cd assemblies \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C clean dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install
-# RUN cd plugins \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C clean dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install -Dmaven.test.skip=true
-# RUN cd plugins/nexus-repository-npm \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install
-# RUN cd plugins \
-#    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.jacoco:jacoco-maven-plugin:prepare-agent install
+# RUN /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.apache.maven.plugins:maven-site-plugin:3.7.1:site
+# RUN /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C dependency:go-offline -Dmaven.repo.local=/root/repository org.apache.maven.plugins:maven-site-plugin:3.7.1:stage
 
 # RUN cd /nexus-public/ \
 #    && /opt/rh/rh-maven35/root/usr/bin/mvn -T 20C install dependency:go-offline -Dmaven.repo.local=/root/repository -Dtest='!ScheduledTaskEventsTest' install test
+# java -cp "/root/repository/*:/root/repository/*/*:/root/repository/*/*/*" randoop.main.Main gentests --classlist=myclasses.txt --flaky-test-behavior=DISCARD --method-selection=BLOODHOUND --input-selection=SMALL_TESTS --maxsize=20 --output-limit=50
+# myclasses.txt
+# java.util.Collections
+# java.util.TreeSet
 CMD [ "init" ]
+
